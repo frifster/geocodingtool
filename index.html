@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PIONEER GEOCODING TOOL</title>
+
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+
+    <!-- LINK TO FONTAWESOME -->
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.3.1/css/all.css" integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU" crossorigin="anonymous">
+
+    <!-- JAVASCRIPT LINKS -->
+    <script type="text/javascript" src="assets/js/jquery-3.3.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+
+    <!-- GOOGLE API -->
+
+</head>
+<body>
+
+<div class="container">
+    <div class="row">
+        <div class="col-lg-2"></div>
+        <div class="col-lg-8">
+            <!-- <form> -->
+            <div class="form-group">
+                <label for="entry_field">ADDRESSES</label>
+                <textarea type="email" class="form-control" id="entry_field" aria-describedby="entry_field" placeholder="Enter Addresses"></textarea>
+                <small id="emailHelp" class="form-text text-muted">
+                    <li>
+                        Enter Addresses with each line corresponding to 1 address
+                    </li>
+                    <li>
+                        Clean up the addresses first by removing terms such as "corner", "brgy", "blk", "lot" , "unno", etc.
+                    </li>
+                    <li>
+                        also ensure that each address contains a single street name. (i.e. corner addresses are not allowed)
+                    </li>
+                    <li>
+                        Results marked as "ERROR" means that the result is outside of the Philippines. Please rephrase the address, check spelling, or add additional address info (i.e. city, province, etc.)
+                    </li>
+                    <li>
+                        Please enter a valid API key for this program to work. Click this <a href="https://developers.google.com/maps/documentation/javascript/get-api-key">LINK</a> for instructions on how to get an API key (note: you will need a valid billing method / credit line)
+                    </li>
+
+                </small>
+                <br>
+                <label for="api_key">GOOGLE API KEY</label>
+                <input type="text" class="form-control" id="api_key" aria-describedby="api_key" placeholder="Enter API KEY">
+            </div>
+            <button onclick="getdata()" class="btn btn-success">GO</button>
+            <!-- </form>	 -->
+        </div>
+    </div>
+</div>
+
+<hr>
+<hr>
+
+<!-- 	RESULT -->
+<div class="container">
+    <div class="row">
+        <div class="col-lg-2"></div>
+        <div class="col-lg-8">
+            <table class="table">
+                <thead>
+                <tr>
+                    <th scope="col">No.</th>
+                    <th scope="col">ADDRESS</th>
+                    <th scope="col">LATITUDE</th>
+                    <th scope="col">LONGITUDE</th>
+                    <th scope="col">REMARKS</th>
+                </tr>
+                </thead>
+                <tbody id="result">
+
+                </tbody>
+            </table>
+
+        </div>
+    </div>
+</div>
+
+<!-- bounadries
+	latitude : 3N to 25N
+	longitude : 115E to 130E
+-->
+
+</body>
+</html>
+
+<script type="text/javascript">
+
+    $(document).ajaxError(function(event,xhr,options,exc){
+
+    })
+
+    async function getdata(){
+        let address = $('#entry_field').val();
+        let key = $('#api_key').val();
+        let address_array = address.split('\n');
+        let count = address_array.length;
+        let latmin = 3;
+        let latmax = 25;
+        let longmin = 115;
+        let longmax = 130;
+
+
+        let bounds = `${latmin},${longmin}|${latmax},${longmax}`;
+
+        let table = "";
+
+        if(key==""){
+            alert('Please enter an API KEY!');
+        }
+        else{
+            for (let i = 0; i<count; i++) {
+                try{
+                    await $.ajax({
+                        url:`https://maps.googleapis.com/maps/api/geocode/json?address=${address_array[i]}&bounds=${bounds}&key=${key}`,
+                        method:"GET",
+                        success: function(data){
+                            console.log(data);
+                            console.log(data.results.length);
+                            if(data.results.length==0){
+                                console.log("TAMA");
+                                let line = `
+									<tr>
+										<td>${i+1}</td>
+										<td>${address_array[i]}</td>
+										<td>ERROR</td>
+										<td>ERROR</td>
+										<td>ERROR</td>
+									</tr>
+								`;
+                                console.log(line);
+                                table += line;
+                                $('#result').html(table);
+                            }
+                            else{
+                                console.log("PUMASOK");
+                                let line = `
+									<tr>
+										<td>${i+1}</td>
+										<td>${address_array[i]}</td>
+										<td>${data.results[0].geometry.location.lat}</td>
+										<td>${data.results[0].geometry.location.lng}</td>
+								`;
+
+                                if (data.results[0].geometry.location.lat > latmin && data.results[0].geometry.location.lat < latmax) {
+                                    if (data.results[0].geometry.location.lng > longmin && data.results[0].geometry.location.lng < longmax) {
+                                        line +=`<td>FOUND</td>`;
+                                    }
+                                    else{
+                                        line +=`<td>ERROR</td>`;
+                                    }
+                                }
+                                else{
+                                    line +=`<td>ERROR</td>`;
+                                }
+
+                                line +=`
+									</tr>
+								`;
+                                console.log(line);
+                                table += line;
+                                $('#result').html(table);
+                            }
+
+
+                        }
+                        // ,
+                        // error: function(err){
+                        // 	let line = `
+                        // 		<tr>
+                        // 			<td>${i+1}</td>
+                        // 			<td>${address_array[i]}</td>
+                        // 			<td>ERROR</td>
+                        // 			<td>ERROR</td>
+                        // 			<td>ERROR</td>
+                        // 		</tr>
+                        // 	`;
+                        // 	console.log(line);
+                        // 	console.log('err', err);
+                        // 	table += line;
+                        // }
+                    }).fail(function(err){
+                        // console.log('FAIL');
+                        let line = `
+								<tr>
+									<td>${i+1}</td>
+									<td>${address_array[i]}</td>
+									<td>ERROR</td>
+									<td>ERROR</td>
+									<td>ERROR</td>
+								</tr>
+							`;
+                        console.log(line);
+                        console.log('err', err);
+                        table += line;
+                        $('#result').html(table);
+                    });
+                }catch(err){
+                    console.log(err);
+                }
+            }
+
+            $('#result').html(table);
+            alert('DONE!');
+        }
+
+    }
+</script>
